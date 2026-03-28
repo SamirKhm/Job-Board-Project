@@ -7,3 +7,7 @@ __pycache__/
 *.pyc
 venv/
 .env
+
+# Large files
+data/training_pairs.csv
+resume_job_model/
