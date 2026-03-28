@@ -3,29 +3,48 @@
 <body>
 
 <h2>Upload Resume</h2>
+
 <form id="form">
-    <input type="file" name="resume" required />
-    <button type="submit">Upload</button>
+<input type="file" name="resume" accept=".pdf,.docx" required />    <button type="submit">Upload</button>
 </form>
 
+<p id="status"></p>
 <pre id="output"></pre>
 
 <script>
 document.getElementById("form").onsubmit = async function(e) {
     e.preventDefault();
 
-    let formData = new FormData(this);
+    const status = document.getElementById("status");
+    const output = document.getElementById("output");
 
-    let res = await fetch("http://127.0.0.1:5000/upload-resume", {
-        method: "POST",
-        body: formData
-    });
+    status.innerText = "⏳ Uploading & Processing...";
+    output.innerText = "";
 
-    let data = await res.json();
+    try {
+        let formData = new FormData(this);
 
-    document.getElementById("output").innerText =
-        JSON.stringify(data, null, 2);
-}
+        let res = await fetch("http://127.0.0.1:5000/upload-resume", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!res.ok) {
+            throw new Error("Server error: " + res.status);
+        }
+
+        let data = await res.json();
+
+        status.innerText = "✅ Done!";
+        output.innerText = JSON.stringify(data, null, 2);
+
+    } catch (err) {
+        status.innerText = "❌ Error occurred";
+        output.innerText = err.message;
+        console.error(err);
+    }
+};
 </script>
+
 </body>
 </html>
