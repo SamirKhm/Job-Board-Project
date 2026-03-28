@@ -1,0 +1,9 @@
+# Ignore large data
+data/
+resume_job_model/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
