@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Candidate Dashboard</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: #f4f6f9;
+    }
+
+    .navbar {
+        background: #4facfe;
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .navbar a {
+        color: white;
+        text-decoration: none;
+        margin-left: 15px;
+    }
+
+    .container {
+        padding: 30px;
+    }
+
+    .card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    button {
+        padding: 8px 14px;
+        background: #4facfe;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #00c6ff;
+    }
+
+    .job {
+        border-bottom: 1px solid #eee;
+        padding: 10px 0;
+    }
+
+    .score {
+        font-weight: bold;
+        color: green;
+    }
+
+    .disabled {
+        background: gray;
+        cursor: not-allowed;
+    }
+</style>
+
+</head>
+<body>
+
+<div class="navbar">
+    <h3>Candidate Dashboard</h3>
+    <div>
+        <a href="#">Profile</a>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+
+<!-- ✅ Resume Upload -->
+<div class="card">
+    <h3>Upload Resume</h3>
+    <!-- 🔥 FIX: enctype added -->
+    <form id="resumeForm" enctype="multipart/form-data">
+        <input type="file" name="resume" required>
+        <br><br>
+        <button type="submit">Upload & Analyze</button>
+    </form>
+    <p id="uploadStatus"></p>
+</div>
+
+<!-- Job Listings -->
+<div class="card">
+    <h3>Available Jobs</h3>
+    <div id="jobsList">Loading jobs...</div>
+</div>
+
+</div>
+
+<script>
+
+// -------- Upload Resume --------
+document.getElementById("resumeForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    let formData = new FormData(this);
+    let status = document.getElementById("uploadStatus");
+
+    try {
+        let res = await fetch("/upload-resume", {
+            method: "POST",
+            body: formData,
+            credentials: "include"   // 🔥 FIX (session issue)
+        });
+
+        let data = await res.json();
+        console.log("UPLOAD RESPONSE:", data);
+
+        if (res.ok) {
+            status.innerText = "✅ Resume uploaded & processed";
+        } else {
+            status.innerText = "❌ " + (data.error || "Upload failed");
+        }
+
+    } catch (err) {
+        status.innerText = "❌ Upload failed";
+        console.error(err);
+    }
+});
+
+
+// -------- Load Jobs --------
+async function loadJobs() {
+    try {
+        let res = await fetch("/get-jobs", {
+            credentials: "include"   // 🔥 FIX
+        });
+
+        let jobs = await res.json();
+        console.log("JOBS:", jobs);
+
+        let container = document.getElementById("jobsList");
+        container.innerHTML = "";
+
+        jobs.forEach(job => {
+            let div = document.createElement("div");
+            div.classList.add("job");
+
+            div.innerHTML = `
+                <h4>${job.title}</h4>
+                <p>${job.description}</p>
+                <p><b>Skills:</b> ${job.required_skills || "Not specified"}</p>
+                <p><b>Experience:</b> ${job.experience_required}</p>
+                <p><b>Location:</b> ${job.location}</p>
+
+                <button onclick="applyJob('${job.job_id}', this)">Apply</button>
+                <p class="score" id="score-${job.job_id}"></p>
+            `;
+
+            container.appendChild(div);
+        });
+
+    } catch (err) {
+        console.error("Error loading jobs:", err);
+    }
+}
+
+
+// -------- Apply Job --------
+async function applyJob(jobId, btn) {
+    btn.innerText = "Applying...";
+    btn.disabled = true;
+
+    try {
+        let res = await fetch("/apply-job", {
+            method: "POST",
+            credentials: "include",   // 🔥 FIX (VERY IMPORTANT)
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ job_id: jobId })
+        });
+
+        let data = await res.json();
+        console.log("APPLY RESPONSE:", data);
+
+        if (res.ok) {
+            document.getElementById(`score-${jobId}`).innerText =
+                "Match Score: " + data.match_score + "%";
+
+            btn.innerText = "Applied";
+            btn.classList.add("disabled");
+
+        } else {
+            btn.innerText = "Apply";
+            btn.disabled = false;
+            alert(data.error || "Failed to apply");
+        }
+
+    } catch (err) {
+        console.error("Apply error:", err);
+        btn.innerText = "Apply";
+        btn.disabled = false;
+    }
+}
+
+
+// Load jobs on page load
+loadJobs();
+
+</script>
+
+</body>
+</html>

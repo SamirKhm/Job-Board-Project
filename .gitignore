@@ -1,6 +1,3 @@
-# Ignore large data
-data/
-resume_job_model/
 
 # Python
 __pycache__/
@@ -8,6 +5,10 @@ __pycache__/
 venv/
 .env
 
+*.pyc
+backend/uploads/
+backend/services/ML/resume_job_model/
+backend/services/ML/data/
 # Large files
 data/training_pairs.csv
 resume_job_model/

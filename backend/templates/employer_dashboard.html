@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employer Dashboard</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: #f4f6f9;
+    }
+
+    .navbar {
+        background: #43e97b;
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .navbar a {
+        color: white;
+        text-decoration: none;
+        margin-left: 15px;
+    }
+
+    .container {
+        padding: 30px;
+    }
+
+    .card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    input, textarea {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+    }
+
+    button {
+        padding: 10px 15px;
+        background: #43e97b;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #2ecc71;
+    }
+
+    .job {
+        border-bottom: 1px solid #eee;
+        padding: 15px 0;
+    }
+
+    .job h4 {
+        margin: 0;
+    }
+
+    .meta {
+        color: #555;
+        font-size: 14px;
+    }
+
+    .applicant {
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+        background: #f9f9f9;
+    }
+
+    .top {
+        background: #e8fff0;
+    }
+</style>
+
+</head>
+<body>
+
+<div class="navbar">
+    <h3>Employer Dashboard</h3>
+    <div>
+        <a href="#">Applicants</a>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+
+<!-- Post Job -->
+<div class="card">
+    <h3>Post a Job</h3>
+
+    <form id="jobForm">
+        <input type="text" name="title" placeholder="Job Title" required>
+        <textarea name="description" placeholder="Job Description" required></textarea>
+        <input type="text" name="required_skills" placeholder="Required Skills (comma separated)" required>
+        <input type="text" name="experience_required" placeholder="Experience Required (e.g., 2 years)" required>
+        <input type="text" name="location" placeholder="Location (e.g., Pune, Remote)" required>
+
+        <button type="submit">Post Job</button>
+    </form>
+
+    <p id="status"></p>
+</div>
+
+<!-- Job Listings -->
+<div class="card">
+    <h3>Your Posted Jobs</h3>
+    <div id="jobList">Loading jobs...</div>
+</div>
+
+</div>
+
+<script>
+
+// -------- Post Job --------
+document.getElementById("jobForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    let formData = new FormData(this);
+    let data = Object.fromEntries(formData.entries());
+
+    try {
+        let res = await fetch("/post-job", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        let result = await res.json();
+
+        if (res.ok) {
+            document.getElementById("status").innerText = "Job posted successfully ✅";
+            this.reset();
+            loadJobs();
+        } else {
+            document.getElementById("status").innerText = result.error || "Error posting job";
+        }
+
+    } catch (err) {
+        document.getElementById("status").innerText = "Server error!";
+    }
+});
+
+
+// -------- Load Jobs --------
+async function loadJobs() {
+    try {
+        let res = await fetch("/employer-jobs");
+        let jobs = await res.json();
+
+        let container = document.getElementById("jobList");
+        container.innerHTML = "";
+
+        if (jobs.length === 0) {
+            container.innerHTML = "<p>No jobs posted yet</p>";
+            return;
+        }
+
+        for (let job of jobs) {
+            let div = document.createElement("div");
+            div.classList.add("job");
+
+            div.innerHTML = `
+                <h4>${job.title}</h4>
+                <p>${job.description}</p>
+
+                <p class="meta"><b>Skills:</b> ${job.required_skills}</p>
+                <p class="meta"><b>Experience:</b> ${job.experience_required}</p>
+                <p class="meta"><b>Location:</b> ${job.location}</p>
+
+                <h5>Applicants:</h5>
+                <div id="applicants-${job.job_id}">Loading...</div>
+            `;
+
+            container.appendChild(div);
+
+            loadApplicants(job.job_id);
+        }
+
+    } catch (err) {
+        document.getElementById("jobList").innerHTML = "Error loading jobs!";
+    }
+}
+
+
+// -------- Load Applicants --------
+async function loadApplicants(jobId) {
+    try {
+        let res = await fetch(`/job-applicants/${jobId}`);
+        let applicants = await res.json();
+
+        let container = document.getElementById(`applicants-${jobId}`);
+        container.innerHTML = "";
+
+        if (applicants.length === 0) {
+            container.innerHTML = "<p>No applicants yet</p>";
+            return;
+        }
+
+        applicants.forEach(app => {
+            let div = document.createElement("div");
+            div.classList.add("applicant");
+
+            // highlight top candidates
+            if (app.score >= 80) {
+                div.classList.add("top");
+            }
+
+            div.innerHTML = `
+                <b>${app.name}</b> (${app.email}) 
+                - Match Score: <b>${app.score}%</b>
+            `;
+
+            container.appendChild(div);
+        });
+
+    } catch (err) {
+        document.getElementById(`applicants-${jobId}`).innerHTML = "Error loading applicants";
+    }
+}
+
+
+// Load jobs on page load
+loadJobs();
+
+</script>
+
+</body>
+</html>
