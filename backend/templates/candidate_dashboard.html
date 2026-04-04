@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Candidate Dashboard</title>
+<meta charset="UTF-8">
+<title>Candidate Dashboard</title>
 
 <style>
     body {
@@ -52,17 +52,26 @@
 
     .job {
         border-bottom: 1px solid #eee;
-        padding: 10px 0;
+        padding: 15px 0;
     }
 
     .score {
         font-weight: bold;
         color: green;
+        margin-top: 5px;
     }
 
     .disabled {
         background: gray;
         cursor: not-allowed;
+    }
+
+    .gap-box {
+        margin-top: 8px;
+        font-size: 14px;
+        background: #f9f9f9;
+        padding: 8px;
+        border-radius: 6px;
     }
 </style>
 
@@ -79,10 +88,9 @@
 
 <div class="container">
 
-<!-- ✅ Resume Upload -->
+<!-- Resume Upload -->
 <div class="card">
     <h3>Upload Resume</h3>
-    <!-- 🔥 FIX: enctype added -->
     <form id="resumeForm" enctype="multipart/form-data">
         <input type="file" name="resume" required>
         <br><br>
@@ -112,7 +120,7 @@ document.getElementById("resumeForm").addEventListener("submit", async function(
         let res = await fetch("/upload-resume", {
             method: "POST",
             body: formData,
-            credentials: "include"   // 🔥 FIX (session issue)
+            credentials: "include"
         });
 
         let data = await res.json();
@@ -135,7 +143,7 @@ document.getElementById("resumeForm").addEventListener("submit", async function(
 async function loadJobs() {
     try {
         let res = await fetch("/get-jobs", {
-            credentials: "include"   // 🔥 FIX
+            credentials: "include"
         });
 
         let jobs = await res.json();
@@ -152,11 +160,13 @@ async function loadJobs() {
                 <h4>${job.title}</h4>
                 <p>${job.description}</p>
                 <p><b>Skills:</b> ${job.required_skills || "Not specified"}</p>
-                <p><b>Experience:</b> ${job.experience_required}</p>
-                <p><b>Location:</b> ${job.location}</p>
+                <p><b>Experience:</b> ${job.experience_required || "N/A"}</p>
+                <p><b>Location:</b> ${job.location || "N/A"}</p>
 
                 <button onclick="applyJob('${job.job_id}', this)">Apply</button>
+
                 <p class="score" id="score-${job.job_id}"></p>
+                <div id="gap-${job.job_id}" class="gap-box"></div>
             `;
 
             container.appendChild(div);
@@ -176,7 +186,7 @@ async function applyJob(jobId, btn) {
     try {
         let res = await fetch("/apply-job", {
             method: "POST",
-            credentials: "include",   // 🔥 FIX (VERY IMPORTANT)
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json"
             },
@@ -187,8 +197,33 @@ async function applyJob(jobId, btn) {
         console.log("APPLY RESPONSE:", data);
 
         if (res.ok) {
+
+            // -------- MATCH SCORE --------
+            let score = (data.match_score || 0).toFixed(2);
             document.getElementById(`score-${jobId}`).innerText =
-                "Match Score: " + data.match_score + "%";
+                "Match Score: " + score + "%";
+
+            // -------- GAP + EXPLANATION --------
+            let gapDiv = document.getElementById(`gap-${jobId}`);
+
+            let matched = (data.matched_skills || []).join(", ");
+            let missing = (data.missing_skills || []).join(", ");
+            let gap = data.skill_gap_percentage || 0;
+
+            let color = gap < 30 ? "green" : gap < 60 ? "orange" : "red";
+
+            gapDiv.innerHTML = `
+                <p><b>🤖 AI Analysis:</b> ${data.explanation || "N/A"}</p>
+
+                <p><b>📊 Skill Gap:</b> 
+                    <span style="color:${color}; font-weight:bold;">
+                        ${gap}%
+                    </span>
+                </p>
+
+                <p><b>✅ Matched Skills:</b> ${matched || "None"}</p>
+                <p><b>❌ Missing Skills:</b> ${missing || "None"}</p>
+            `;
 
             btn.innerText = "Applied";
             btn.classList.add("disabled");
@@ -205,9 +240,7 @@ async function applyJob(jobId, btn) {
         btn.disabled = false;
     }
 }
-
-
-// Load jobs on page load
+// Load jobs
 loadJobs();
 
 </script>

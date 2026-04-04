@@ -1,9 +1,8 @@
 from flask import Blueprint, request, jsonify, session
 from db import mysql
-import re
+from services.matcher import calculate_match
 import uuid   # ✅ IMPORTANT
-from services.matcher import calculate_match, skill_gap_analysis
-from services.llm_processor import generate_explanation
+
 job_bp = Blueprint('job', __name__)
 
 # ------------------ GET EMPLOYER JOBS ------------------
@@ -119,12 +118,14 @@ def get_jobs():
 
 # ------------------ APPLY JOB ------------------
 
+
 @job_bp.route('/apply-job', methods=['POST'])
 def apply_job():
     try:
         data = request.get_json() or {}
         job_id = data.get('job_id')
 
+        # 🔒 Check login
         user_id = session.get('user_id')
         if not user_id:
             return jsonify({"error": "User not logged in"}), 401
@@ -146,12 +147,7 @@ def apply_job():
             cur.close()
             return jsonify({"error": "Upload resume first"}), 400
 
-        # ✅ Clean resume skills
-        resume_skills = [
-            re.sub(r"[^a-zA-Z0-9\s]", "", s.strip().lower())
-            for s in (resume[0] or "").split(",") if s.strip()
-        ]
-
+        # ✅ Build resume text (structured)
         resume_text = f"""
         Skills: {resume[0] or ""}
         Experience: {resume[1] or ""}
@@ -170,34 +166,18 @@ def apply_job():
             cur.close()
             return jsonify({"error": "Job not found"}), 404
 
-        # ✅ Clean job skills
-        job_skills = [
-            re.sub(r"[^a-zA-Z0-9\s]", "", s.strip().lower())
-            for s in (job[0] or "").split(",") if s.strip()
-        ]
-
+        # ✅ Build job text (structured)
         job_text = f"""
         Skills Required: {job[0] or ""}
         Experience Required: {job[1] or ""}
         Job Description: {job[2] or ""}
         """
 
-        # -------- 1. MATCH SCORE --------
+        # -------- MATCHING --------
         match_score = calculate_match(resume_text, job_text)
 
-        # -------- 2. SKILL GAP --------
-        gap_result = skill_gap_analysis(resume_skills, job_skills)
-
-        # -------- 3. EXPLANATION --------
-        explanation = generate_explanation(
-            gap_result["matched_skills"],
-            job_skills,
-            match_score
-        )
-
-        # 🔥 Fallback if LLM fails
-        if not explanation or explanation.strip() == "":
-            explanation = "Candidate matches based on relevant skills and experience."
+        # # Optional: convert to percentage
+        # match_score = round(match_score * 100, 2)
 
         # -------- CHECK EXISTING APPLICATION --------
         cur.execute("""
@@ -208,37 +188,39 @@ def apply_job():
         existing = cur.fetchone()
 
         if existing:
+            # ✅ UPDATE EXISTING APPLICATION
             cur.execute("""
                 UPDATE applications
                 SET match_score = %s, status = 'applied'
                 WHERE user_id = %s AND job_id = %s
             """, (match_score, user_id, job_id))
+
             message = "Application updated"
+
         else:
+            # ✅ NEW APPLICATION
             application_id = str(uuid.uuid4())
 
             cur.execute("""
-                INSERT INTO applications 
-                (application_id, user_id, job_id, match_score, status)
+                INSERT INTO applications (application_id, user_id, job_id, match_score, status)
                 VALUES (%s, %s, %s, %s, 'applied')
             """, (application_id, user_id, job_id, match_score))
+
             message = "Applied successfully"
 
         mysql.connection.commit()
         cur.close()
 
+        # -------- RESPONSE --------
         return jsonify({
             "message": message,
-            "match_score": match_score,
-            "explanation": explanation,
-            "matched_skills": gap_result["matched_skills"],
-            "missing_skills": gap_result["missing_skills"],
-            "skill_gap_percentage": gap_result["skill_gap_percentage"]
+            "match_score": match_score
         })
 
     except Exception as e:
         print("❌ ERROR:", e)
-        return jsonify({"error": str(e)}), 500    
+        return jsonify({"error": str(e)}), 500
+
 
 @job_bp.route('/job-applicants/<job_id>', methods=['GET'])
 def job_applicants(job_id):
