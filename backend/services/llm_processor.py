@@ -5,65 +5,196 @@ import re
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 
-# ------------------ JSON CLEANER ------------------
+# ============================================================
+# JSON CLEANER
+# ============================================================
+
 def fix_json(text):
+
     # Remove markdown
-    text = re.sub(r"```[a-zA-Z]*", "", text)
-    text = text.replace("```", "").strip()
+    text = re.sub(
+        r"```[a-zA-Z]*",
+        "",
+        text
+    )
+
+    text = text.replace(
+        "```",
+        ""
+    ).strip()
+
 
     # Extract JSON block
-    match = re.search(r"\{.*\}", text, re.DOTALL)
+    match = re.search(
+        r"\{.*\}",
+        text,
+        re.DOTALL
+    )
+
     if not match:
         return None
 
+
     text = match.group(0)
 
+
     # Fix unquoted keys
-    text = re.sub(r'([,{]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', text)
+    text = re.sub(
+        r'([,{]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:',
+        r'\1"\2":',
+        text
+    )
+
 
     # Replace single quotes with double quotes
-    text = text.replace("'", '"')
+    text = text.replace(
+        "'",
+        '"'
+    )
+
 
     # Remove trailing commas
-    text = re.sub(r",\s*([}\]])", r"\1", text)
+    text = re.sub(
+        r",\s*([}\]])",
+        r"\1",
+        text
+    )
+
 
     return text
 
 
-# ------------------ EXPLANATION (LLM) ------------------
-def generate_explanation(resume_skills, job_skills, score):
+# ============================================================
+# EXPLANATION (LLM)
+# ============================================================
+
+def generate_explanation(
+    matched_skills,
+    missing_skills,
+    match_score,
+    semantic_score,
+    skill_score,
+    experience_score,
+    education_score
+):
+
     prompt = f"""
-Explain why the candidate is suitable or not suitable for the job.
+Explain this candidate-job match in 1-2 short sentences.
 
-Match Score: {score}%
-Matching Skills: {resume_skills}
-Job Skills: {job_skills}
+AMSM Match Score: {match_score}%
 
-IMPORTANT RULES:
-- If matching skills list is empty, clearly say candidate is NOT a good match
-- Do NOT add skills that are not in the matching list
-- Keep answer short (1-2 lines)
-- Be honest and logical
+Semantic Score: {semantic_score}%
+Skill Score: {skill_score}%
+Experience Score: {experience_score}%
+Education Score: {education_score}%
+
+Matched Skills:
+{matched_skills}
+
+Missing Skills:
+{missing_skills}
+
+Rules:
+- Do not invent skills.
+- Mention missing skills if present.
+- Mention education mismatch if education score is 0.
+- Mention experience mismatch if experience score is below 100.
+- Keep it concise.
 """
 
-    try:
-        response = requests.post(OLLAMA_URL, json={
-            "model": "phi3",
-            "prompt": prompt,
-            "stream": False,
-            "options": {"temperature": 0}
-        })
-        print("🔍 LLM RAW RESPONSE:", response.json())
 
-        return response.json().get("response", "").strip()
+    try:
+
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": "phi3",
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0
+                }
+            }
+        )
+
+
+        response.raise_for_status()
+
+
+        result = response.json()
+
+
+        explanation = result.get(
+            "response",
+            ""
+        ).strip()
+
+
+        if explanation:
+
+            return explanation
+
+
+        return (
+            "Candidate matches the required "
+            "skills and job criteria."
+        )
+
 
     except Exception as e:
-        print("❌ LLM Explanation Error:", e)
-        return "Explanation not available"
+
+        print(
+            "❌ LLM Explanation Error:",
+            e
+        )
 
 
-# ------------------ RESUME PARSER (LLM) ------------------
+        # ----------------------------------------------------
+        # FALLBACK EXPLANATION
+        # ----------------------------------------------------
+
+        if missing_skills:
+
+            return (
+                f"The candidate matches "
+                f"{len(matched_skills)} required skills, "
+                f"but is missing: "
+                f"{', '.join(missing_skills)}."
+            )
+
+
+        elif education_score < 100:
+
+            return (
+                "The candidate matches the required skills, "
+                "but the required education qualification "
+                "is not fully satisfied."
+            )
+
+
+        elif experience_score < 100:
+
+            return (
+                "The candidate matches the required skills, "
+                "but does not fully satisfy the required "
+                "experience."
+            )
+
+
+        else:
+
+            return (
+                "The candidate matches all required skills "
+                "and satisfies the evaluated job criteria."
+            )
+
+
+# ============================================================
+# RESUME PARSER (LLM)
+# ============================================================
+
 def extract_details(text):
+
     prompt = f"""
 You are a JSON generator.
 
@@ -79,6 +210,7 @@ STRICT RULES:
 - Skills must be a JSON array of strings
 
 FORMAT:
+
 {{
   "name": "string",
   "skills": ["skill1", "skill2"],
@@ -88,49 +220,121 @@ FORMAT:
 }}
 
 Resume:
+
 {text[:2000]}
 """
 
+
     try:
-        response = requests.post(OLLAMA_URL, json={
-            "model": "phi3",
-            "prompt": prompt,
-            "stream": False,
-            "options": {"temperature": 0}
-        })
+
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": "phi3",
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0
+                }
+            }
+        )
+
 
         result = response.json()
-        raw_output = result.get("response", "")
 
-        print("🔍 RAW OUTPUT:", raw_output, flush=True)
 
-        # -------- CLEAN JSON --------
-        cleaned = fix_json(raw_output)
+        raw_output = result.get(
+            "response",
+            ""
+        )
+
+
+        print(
+            "🔍 RAW OUTPUT:",
+            raw_output,
+            flush=True
+        )
+
+
+        # ----------------------------------------------------
+        # CLEAN JSON
+        # ----------------------------------------------------
+
+        cleaned = fix_json(
+            raw_output
+        )
+
 
         if not cleaned:
-            return fallback_response("No JSON found")
+
+            return fallback_response(
+                "No JSON found"
+            )
+
 
         try:
-            parsed = json.loads(cleaned)
+
+            parsed = json.loads(
+                cleaned
+            )
+
             return parsed
 
+
         except json.JSONDecodeError as e:
-            print("❌ JSON ERROR:", e, flush=True)
-            print("⚠️ Cleaned JSON:", cleaned, flush=True)
-            return fallback_response("Invalid JSON after cleaning")
+
+            print(
+                "❌ JSON ERROR:",
+                e,
+                flush=True
+            )
+
+
+            print(
+                "⚠️ Cleaned JSON:",
+                cleaned,
+                flush=True
+            )
+
+
+            return fallback_response(
+                "Invalid JSON after cleaning"
+            )
+
 
     except Exception as e:
-        print("❌ LLM Error:", e)
-        return fallback_response(str(e))
+
+        print(
+            "❌ LLM Error:",
+            e
+        )
 
 
-# ------------------ FALLBACK (IMPORTANT) ------------------
-def fallback_response(reason=""):
+        return fallback_response(
+            str(e)
+        )
+
+
+# ============================================================
+# FALLBACK
+# ============================================================
+
+def fallback_response(
+    reason=""
+):
+
     return {
+
         "name": "",
+
         "skills": [],
+
         "education": "",
+
         "experience": "",
+
         "summary": "",
-        "warning": f"LLM parsing failed: {reason}"
+
+        "warning":
+            f"LLM parsing failed: {reason}"
     }

@@ -1,243 +1,1186 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Employer Dashboard</title>
 
-<style>
-    body {
-        margin: 0;
-        font-family: 'Segoe UI', sans-serif;
-        background: #f4f6f9;
-    }
-
-    .navbar {
-        background: #43e97b;
-        color: white;
-        padding: 15px;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .navbar a {
-        color: white;
-        text-decoration: none;
-        margin-left: 15px;
-    }
-
-    .container {
-        padding: 30px;
-    }
-
-    .card {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-
-    input, textarea {
-        width: 100%;
-        padding: 10px;
-        margin: 8px 0;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-    }
-
-    button {
-        padding: 10px 15px;
-        background: #43e97b;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-    }
-
-    button:hover {
-        background: #2ecc71;
-    }
-
-    .job {
-        border-bottom: 1px solid #eee;
-        padding: 15px 0;
-    }
-
-    .job h4 {
-        margin: 0;
-    }
-
-    .meta {
-        color: #555;
-        font-size: 14px;
-    }
-
-    .applicant {
-        padding: 5px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        background: #f9f9f9;
-    }
-
-    .top {
-        background: #e8fff0;
-    }
-</style>
-
-</head>
-<body>
-
-<div class="navbar">
-    <h3>Employer Dashboard</h3>
-    <div>
-        <a href="#">Applicants</a>
-        <a href="/logout">Logout</a>
-    </div>
-</div>
-
-<div class="container">
-
-<!-- Post Job -->
-<div class="card">
-    <h3>Post a Job</h3>
-
-    <form id="jobForm">
-        <input type="text" name="title" placeholder="Job Title" required>
-        <textarea name="description" placeholder="Job Description" required></textarea>
-        <input type="text" name="required_skills" placeholder="Required Skills (comma separated)" required>
-        <input type="text" name="experience_required" placeholder="Experience Required (e.g., 2 years)" required>
-        <input type="text" name="location" placeholder="Location (e.g., Pune, Remote)" required>
-
-        <button type="submit">Post Job</button>
-    </form>
-
-    <p id="status"></p>
-</div>
-
-<!-- Job Listings -->
-<div class="card">
-    <h3>Your Posted Jobs</h3>
-    <div id="jobList">Loading jobs...</div>
-</div>
-
-</div>
-
-<script>
-
-// -------- Post Job --------
-document.getElementById("jobForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-
-    let formData = new FormData(this);
-    let data = Object.fromEntries(formData.entries());
-
-    try {
-        let res = await fetch("/post-job", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        });
-
-        let result = await res.json();
-
-        if (res.ok) {
-            document.getElementById("status").innerText = "Job posted successfully ✅";
-            this.reset();
-            loadJobs();
-        } else {
-            document.getElementById("status").innerText = result.error || "Error posting job";
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-    } catch (err) {
-        document.getElementById("status").innerText = "Server error!";
-    }
-});
-
-
-// -------- Load Jobs --------
-async function loadJobs() {
-    try {
-        let res = await fetch("/employer-jobs");
-        let jobs = await res.json();
-
-        let container = document.getElementById("jobList");
-        container.innerHTML = "";
-
-        if (jobs.length === 0) {
-            container.innerHTML = "<p>No jobs posted yet</p>";
-            return;
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 40px;
         }
 
-        for (let job of jobs) {
-            let div = document.createElement("div");
-            div.classList.add("job");
-
-            div.innerHTML = `
-                <h4>${job.title}</h4>
-                <p>${job.description}</p>
-
-                <p class="meta"><b>Skills:</b> ${job.required_skills}</p>
-                <p class="meta"><b>Experience:</b> ${job.experience_required}</p>
-                <p class="meta"><b>Location:</b> ${job.location}</p>
-
-                <h5>Applicants:</h5>
-                <div id="applicants-${job.job_id}">Loading...</div>
-            `;
-
-            container.appendChild(div);
-
-            loadApplicants(job.job_id);
+        /* Navbar */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-    } catch (err) {
-        document.getElementById("jobList").innerHTML = "Error loading jobs!";
-    }
-}
-
-
-// -------- Load Applicants --------
-async function loadApplicants(jobId) {
-    try {
-        let res = await fetch(`/job-applicants/${jobId}`);
-        let applicants = await res.json();
-
-        let container = document.getElementById(`applicants-${jobId}`);
-        container.innerHTML = "";
-
-        if (applicants.length === 0) {
-            container.innerHTML = "<p>No applicants yet</p>";
-            return;
+        .navbar h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
-        applicants.forEach(app => {
-            let div = document.createElement("div");
-            div.classList.add("applicant");
+        .navbar-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
 
-            // highlight top candidates
-            if (app.score >= 80) {
-                div.classList.add("top");
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .navbar a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(102, 126, 234, 0.2);
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 24px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            margin: 0;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: linear-gradient(135deg, #f8faff 0%, #f5f7ff 100%);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        button {
+            padding: 13px 28px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #status {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        #status.show {
+            display: block;
+        }
+
+        #status.success {
+            background: linear-gradient(135deg, #d4fc79 0%, #96f550 100%);
+            color: #22543d;
+            border: 1px solid #96f550;
+        }
+
+        #status.error {
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+            color: #7f1d1d;
+            border: 1px solid #f87171;
+        }
+
+        /* Jobs Grid */
+        .jobs-grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        /* Job Card */
+        .job {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            background: linear-gradient(135deg, #f8faff 0%, #f5f7ff 100%);
+            transition: all 0.3s ease;
+        }
+
+        .job:hover {
+            border-color: #667eea;
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+        .job h4 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .job-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .job-description {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 12px 0;
+        }
+
+        .job-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .meta-item {
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .meta-label {
+            font-weight: 600;
+            color: #2d3748;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Applicants */
+        .applicants-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .applicants-section h5 {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .applicants-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .applicant {
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .applicant:hover {
+            border-color: #667eea;
+            background: #f8faff;
+        }
+
+        .applicant-info {
+            flex: 1;
+        }
+
+        .applicant-name {
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 4px;
+        }
+
+        .applicant-email {
+            color: #718096;
+            font-size: 13px;
+        }
+
+        .applicant-score {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .applicant-score.high {
+            background: linear-gradient(135deg, #d4fc79 0%, #96f550 100%);
+            color: #22543d;
+        }
+
+        .applicant-score.medium {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #78350f;
+        }
+
+        .applicant-score.low {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: #7f1d1d;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: #a0aec0;
+        }
+
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        /* Responsive */
+        @media(max-width: 1024px) {
+            .container {
+                padding: 0 16px;
             }
 
-            div.innerHTML = `
-                <b>${app.name}</b> (${app.email}) 
-                - Match Score: <b>${app.score}%</b>
-            `;
+            .card {
+                padding: 24px;
+            }
 
-            container.appendChild(div);
-        });
+            .navbar {
+                padding: 16px 24px;
+            }
 
-    } catch (err) {
-        document.getElementById(`applicants-${jobId}`).innerHTML = "Error loading applicants";
-    }
-}
+            .navbar h2 {
+                font-size: 24px;
+            }
+
+            .navbar-links {
+                gap: 16px;
+            }
+        }
+
+        @media(max-width: 640px) {
+            .container {
+                margin: 20px auto;
+                padding: 0 16px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .job-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .job-header {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            h3 {
+                font-size: 20px;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .applicant {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .applicant-score {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <div class="navbar">
+        <h2>💼 Employer Dashboard</h2>
+
+        <div class="navbar-links">
+            <a href="/logout">🚪 Logout</a>
+        </div>
+    </div>
 
 
-// Load jobs on page load
-loadJobs();
+    <div class="container">
 
-</script>
+        <!-- =====================================================
+             POST JOB
+        ====================================================== -->
+
+        <div class="card">
+
+            <h3>📝 Post a New Job</h3>
+
+            <form id="jobForm">
+
+                <!-- Job Title -->
+                <div class="form-group">
+
+                    <label>Job Title</label>
+
+                    <input
+                        type="text"
+                        name="title"
+                        placeholder="e.g., Senior Frontend Developer"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- Job Description -->
+                <div class="form-group">
+
+                    <label>Job Description</label>
+
+                    <textarea
+                        name="description"
+                        placeholder="Describe the role, responsibilities, and what you're looking for..."
+                        required
+                    ></textarea>
+
+                </div>
+
+
+                <!-- Required Skills -->
+                <div class="form-group">
+
+                    <label>Required Skills (comma separated)</label>
+
+                    <input
+                        type="text"
+                        name="required_skills"
+                        placeholder="e.g., React, TypeScript, Node.js"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- Experience -->
+                <div class="form-group">
+
+                    <label>Experience Required</label>
+
+                    <input
+                        type="text"
+                        name="experience_required"
+                        placeholder="e.g., 3-5 years"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- Education -->
+                <div class="form-group">
+
+                    <label>Required Education</label>
+
+                    <input
+                        type="text"
+                        name="education_required"
+                        id="education_required"
+                        placeholder="e.g. B.Tech in Computer Science"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- Location -->
+                <div class="form-group">
+
+                    <label>Location</label>
+
+                    <input
+                        type="text"
+                        name="location"
+                        placeholder="e.g., San Francisco, CA or Remote"
+                        required
+                    >
+
+                </div>
+
+
+                <button type="submit">
+                    🚀 Post Job
+                </button>
+
+            </form>
+
+            <p id="status"></p>
+
+        </div>
+
+
+        <!-- =====================================================
+             POSTED JOBS
+        ====================================================== -->
+
+        <div class="card">
+
+            <h3>💼 Your Posted Jobs</h3>
+
+            <div id="jobList" class="jobs-grid">
+
+                <div class="no-data">
+
+                    <div class="no-data-icon">
+                        📋
+                    </div>
+
+                    <p>
+                        No jobs posted yet.
+                        Create your first job posting above!
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        // =====================================================
+        // POST JOB
+        // =====================================================
+
+        document
+            .getElementById("jobForm")
+            .addEventListener("submit", async function (e) {
+
+                e.preventDefault();
+
+                const formData = new FormData(this);
+
+                const data =
+                    Object.fromEntries(
+                        formData.entries()
+                    );
+
+                const statusEl =
+                    document.getElementById("status");
+
+
+                try {
+
+                    const res =
+                        await fetch("/post-job", {
+
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify(data),
+
+                            credentials:
+                                "include"
+                        });
+
+
+                    const result =
+                        await res.json();
+
+
+                    if (res.ok) {
+
+                        statusEl.innerText =
+                            "✅ Job posted successfully!";
+
+                        statusEl.className =
+                            "show success";
+
+                        this.reset();
+
+                        loadJobs();
+
+
+                        setTimeout(() => {
+
+                            statusEl.classList.remove(
+                                "show"
+                            );
+
+                        }, 4000);
+
+                    } else {
+
+                        statusEl.innerText =
+                            "❌ " +
+                            (
+                                result.error ||
+                                "Error posting job"
+                            );
+
+                        statusEl.className =
+                            "show error";
+                    }
+
+                } catch (err) {
+
+                    statusEl.innerText =
+                        "❌ Server error!";
+
+                    statusEl.className =
+                        "show error";
+
+                    console.error(
+                        "Post job error:",
+                        err
+                    );
+                }
+
+            });
+
+
+        // =====================================================
+        // LOAD EMPLOYER JOBS
+        // =====================================================
+
+        async function loadJobs() {
+
+            try {
+
+                const res =
+                    await fetch(
+                        "/employer-jobs",
+                        {
+                            credentials:
+                                "include"
+                        }
+                    );
+
+
+                const jobs =
+                    await res.json();
+
+
+                const container =
+                    document.getElementById(
+                        "jobList"
+                    );
+
+
+                container.innerHTML = "";
+
+
+                // Handle backend error
+                if (!res.ok) {
+
+                    container.innerHTML = `
+                        <div class="no-data">
+                            <div class="no-data-icon">
+                                ⚠️
+                            </div>
+
+                            <p>
+                                ${jobs.error || "Error loading jobs"}
+                            </p>
+                        </div>
+                    `;
+
+                    return;
+                }
+
+
+                // No jobs
+                if (
+                    !Array.isArray(jobs) ||
+                    jobs.length === 0
+                ) {
+
+                    container.innerHTML = `
+                        <div
+                            class="no-data"
+                            style="grid-column:1/-1;"
+                        >
+
+                            <div class="no-data-icon">
+                                📋
+                            </div>
+
+                            <p>
+                                No jobs posted yet.
+                                Create your first job posting above!
+                            </p>
+
+                        </div>
+                    `;
+
+                    return;
+                }
+
+
+                // =================================================
+                // CREATE JOB CARDS
+                // =================================================
+
+                for (const job of jobs) {
+
+                    const div =
+                        document.createElement(
+                            "div"
+                        );
+
+                    div.classList.add("job");
+
+
+                    div.innerHTML = `
+
+                        <div class="job-header">
+
+                            <div>
+
+                                <h4>
+                                    ${job.title || "Untitled Job"}
+                                </h4>
+
+                                <div
+                                    class="job-badge"
+                                    id="badge-${job.job_id}"
+                                >
+                                    0 Applicants
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <p class="job-description">
+                            ${job.description || "No description provided"}
+                        </p>
+
+
+                        <div class="job-meta">
+
+                            <div class="meta-item">
+
+                                <span class="meta-label">
+                                    🎯 Skills Required
+                                </span>
+
+                                ${job.required_skills || "Not specified"}
+
+                            </div>
+
+
+                            <div class="meta-item">
+
+                                <span class="meta-label">
+                                    ⏱️ Experience
+                                </span>
+
+                                ${job.experience_required || "Not specified"}
+
+                            </div>
+
+
+                            <div class="meta-item">
+
+                                <span class="meta-label">
+                                    🎓 Education
+                                </span>
+
+                                ${job.education_required || "Not specified"}
+
+                            </div>
+
+
+                            <div class="meta-item">
+
+                                <span class="meta-label">
+                                    📍 Location
+                                </span>
+
+                                ${job.location || "Not specified"}
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Applicants -->
+                        <div class="applicants-section">
+
+                            <h5>
+                                👥 Applicants
+                            </h5>
+
+                            <div
+                                id="applicants-${job.job_id}"
+                                class="applicants-list"
+                            >
+
+                                <div class="no-data">
+
+                                    Loading applicants...
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+
+                    container.appendChild(div);
+
+
+                    // Load applicants for this job
+                    loadApplicants(
+                        job.job_id
+                    );
+
+                }
+
+            } catch (err) {
+
+                console.error(
+                    "Load jobs error:",
+                    err
+                );
+
+
+                document.getElementById(
+                    "jobList"
+                ).innerHTML = `
+
+                    <div
+                        class="no-data"
+                        style="grid-column:1/-1;"
+                    >
+
+                        <div class="no-data-icon">
+                            ⚠️
+                        </div>
+
+                        <p>
+                            Error loading jobs.
+                            Please refresh the page.
+                        </p>
+
+                    </div>
+
+                `;
+            }
+        }
+
+
+        // =====================================================
+        // LOAD APPLICANTS
+        // =====================================================
+
+        async function loadApplicants(jobId) {
+
+            const container =
+                document.getElementById(
+                    `applicants-${jobId}`
+                );
+
+            const badge =
+                document.getElementById(
+                    `badge-${jobId}`
+                );
+
+
+            try {
+
+                const res =
+                    await fetch(
+                        `/job-applicants/${jobId}`,
+                        {
+                            credentials:
+                                "include"
+                        }
+                    );
+
+
+                const applicants =
+                    await res.json();
+
+
+                // Backend error
+                if (!res.ok) {
+
+                    if (container) {
+
+                        container.innerHTML = `
+
+                            <div
+                                style="
+                                    text-align:center;
+                                    padding:20px;
+                                    color:#a0aec0;
+                                "
+                            >
+                                ⚠️
+                                ${applicants.error || "Error loading applicants"}
+                            </div>
+
+                        `;
+                    }
+
+                    return;
+                }
+
+
+                if (!Array.isArray(applicants)) {
+
+                    if (container) {
+
+                        container.innerHTML = `
+                            <div
+                                style="
+                                    text-align:center;
+                                    padding:20px;
+                                    color:#a0aec0;
+                                "
+                            >
+                                ⚠️ Error loading applicants
+                            </div>
+                        `;
+                    }
+
+                    return;
+                }
+
+
+                // Update applicant count
+                if (badge) {
+
+                    badge.innerText =
+                        `${applicants.length} Applicant${applicants.length !== 1 ? "s" : ""}`;
+                }
+
+
+                // No applicants
+                if (applicants.length === 0) {
+
+                    if (container) {
+
+                        container.innerHTML = `
+
+                            <div
+                                style="
+                                    text-align:center;
+                                    padding:20px;
+                                    color:#a0aec0;
+                                "
+                            >
+
+                                <div
+                                    style="
+                                        font-size:24px;
+                                        margin-bottom:8px;
+                                    "
+                                >
+                                    👥
+                                </div>
+
+                                <p>
+                                    No applicants yet
+                                </p>
+
+                            </div>
+
+                        `;
+                    }
+
+                    return;
+                }
+
+
+                // Sort highest score first
+                applicants.sort(
+                    (a, b) =>
+                        Number(b.score || 0) -
+                        Number(a.score || 0)
+                );
+
+
+                if (container) {
+
+                    container.innerHTML = "";
+
+                }
+
+
+                // =================================================
+                // DISPLAY APPLICANTS
+                // =================================================
+
+                applicants.forEach(app => {
+
+                    const div =
+                        document.createElement(
+                            "div"
+                        );
+
+                    div.classList.add(
+                        "applicant"
+                    );
+
+
+                    const score =
+                        Number(
+                            app.score || 0
+                        );
+
+
+                    let scoreClass;
+
+                    if (score >= 80) {
+
+                        scoreClass = "high";
+
+                    } else if (score >= 50) {
+
+                        scoreClass = "medium";
+
+                    } else {
+
+                        scoreClass = "low";
+
+                    }
+
+
+                    div.innerHTML = `
+
+                        <div class="applicant-info">
+
+                            <div class="applicant-name">
+                                ${app.name || "Unknown Candidate"}
+                            </div>
+
+                            <div class="applicant-email">
+                                ${app.email || "No email"}
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            class="applicant-score ${scoreClass}"
+                        >
+                            ${score.toFixed(2)}%
+                        </div>
+
+                    `;
+
+
+                    if (container) {
+
+                        container.appendChild(
+                            div
+                        );
+
+                    }
+
+                });
+
+            } catch (err) {
+
+                console.error(
+                    "Load applicants error:",
+                    err
+                );
+
+
+                if (container) {
+
+                    container.innerHTML = `
+
+                        <div
+                            style="
+                                text-align:center;
+                                padding:20px;
+                                color:#a0aec0;
+                            "
+                        >
+                            ⚠️ Error loading applicants
+                        </div>
+
+                    `;
+                }
+            }
+        }
+
+
+        // =====================================================
+        // INITIAL LOAD
+        // =====================================================
+
+        loadJobs();
+
+    </script>
 
 </body>
+
 </html>

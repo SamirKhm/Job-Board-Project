@@ -12,3 +12,7 @@ backend/services/ML/data/
 # Large files
 data/training_pairs.csv
 resume_job_model/
+backend/services.zip
+backend/services/ML/resume_job_model.zip
+backend/services/ML/fine_tuned_sbert/model.safetensors
+backend/services/ML/old_data/training_pairs.csv

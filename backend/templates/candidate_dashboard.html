@@ -1,249 +1,1631 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Candidate Dashboard</title>
+    <meta charset="UTF-8">
+    <title>Candidate Dashboard</title>
 
-<style>
-    body {
-        margin: 0;
-        font-family: 'Segoe UI', sans-serif;
-        background: #f4f6f9;
-    }
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    .navbar {
-        background: #4facfe;
-        color: white;
-        padding: 15px;
-        display: flex;
-        justify-content: space-between;
-    }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
 
-    .navbar a {
-        color: white;
-        text-decoration: none;
-        margin-left: 15px;
-    }
+        /* ================= NAVBAR ================= */
 
-    .container {
-        padding: 30px;
-    }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-    .card {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
+        .navbar h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
 
-    button {
-        padding: 8px 14px;
-        background: #4facfe;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-    }
+        .navbar-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
 
-    button:hover {
-        background: #00c6ff;
-    }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
 
-    .job {
-        border-bottom: 1px solid #eee;
-        padding: 15px 0;
-    }
+        .navbar a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
 
-    .score {
-        font-weight: bold;
-        color: green;
-        margin-top: 5px;
-    }
+        /* ================= LAYOUT ================= */
 
-    .disabled {
-        background: gray;
-        cursor: not-allowed;
-    }
+        .container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+        }
 
-    .gap-box {
-        margin-top: 8px;
-        font-size: 14px;
-        background: #f9f9f9;
-        padding: 8px;
-        border-radius: 6px;
-    }
-</style>
+        /* ================= CARDS ================= */
 
+        .card {
+            background: white;
+            padding: 28px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(102, 126, 234, 0.2);
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 24px;
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ================= UPLOAD ================= */
+
+        .upload-box {
+            border: 2px dashed #667eea;
+            padding: 35px;
+            text-align: center;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(
+                135deg,
+                #f5f7ff 0%,
+                #f0f4ff 100%
+            );
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(102, 126, 234, 0.05),
+                transparent
+            );
+            pointer-events: none;
+        }
+
+        .upload-box:hover {
+            background: linear-gradient(
+                135deg,
+                #eef2ff 0%,
+                #e8edff 100%
+            );
+            border-color: #764ba2;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15);
+        }
+
+        .upload-box p {
+            font-size: 16px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        input[type="file"] {
+            margin-top: 15px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        input[type="file"]::file-selector-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* ================= BUTTON ================= */
+
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            margin-top: 16px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        button.disabled:hover {
+            transform: none;
+        }
+
+        /* ================= STATUS ================= */
+
+        #uploadStatus {
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            display: none;
+        }
+
+        #uploadStatus.show {
+            display: block;
+        }
+
+        #uploadStatus.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        #uploadStatus.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* ================= PROCESSING MODAL ================= */
+
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .processing-overlay.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .processing-modal {
+            background: white;
+            padding: 48px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 24px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-right-color: #764ba2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .processing-modal h2 {
+            margin: 0 0 12px 0;
+            font-size: 24px;
+            color: #1a202c;
+        }
+
+        .processing-modal p {
+            color: #718096;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .processing-steps {
+            margin-top: 24px;
+            text-align: left;
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        .step {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .step.active .step-icon {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .step.done .step-icon {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        /* ================= JOB CARDS ================= */
+
+        .job {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 24px 0;
+            transition: all 0.3s ease;
+        }
+
+        .job:last-child {
+            border-bottom: none;
+        }
+
+        .job:hover {
+            background: linear-gradient(
+                135deg,
+                #f8faff 0%,
+                #f5f7ff 100%
+            );
+            padding: 24px;
+            margin: -24px 0 0 -24px;
+            margin-right: -24px;
+            border-radius: 12px;
+        }
+
+        .job h4 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .company {
+            color: #718096;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 16px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            font-size: 13px;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* ================= SCORE ================= */
+
+        .score {
+            display: inline-block;
+            background: linear-gradient(
+                135deg,
+                #d4fc79 0%,
+                #96f550 100%
+            );
+            color: #22543d;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 12px;
+            box-shadow: 0 4px 12px rgba(150, 245, 80, 0.3);
+        }
+
+        .score.medium {
+            background: linear-gradient(
+                135deg,
+                #fbbf24 0%,
+                #f59e0b 100%
+            );
+            color: #78350f;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .score.low {
+            background: linear-gradient(
+                135deg,
+                #f87171 0%,
+                #ef4444 100%
+            );
+            color: #7f1d1d;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        /* ================= GAP ================= */
+
+        .gap-box {
+            margin-top: 16px;
+            font-size: 13px;
+            background: linear-gradient(
+                135deg,
+                #fef3c7 0%,
+                #fef08a 100%
+            );
+            padding: 16px;
+            border-radius: 10px;
+            color: #78350f;
+            border: 1px solid #fcd34d;
+            line-height: 1.6;
+        }
+
+        .gap-box p {
+            margin: 8px 0;
+        }
+
+        .gap-box b {
+            color: #92400e;
+            font-weight: 600;
+        }
+
+        .gap-box.medium {
+            background: linear-gradient(
+                135deg,
+                #fed7aa 0%,
+                #fdba74 100%
+            );
+            border-color: #fb923c;
+            color: #7c2d12;
+        }
+
+        .gap-box.low {
+            background: linear-gradient(
+                135deg,
+                #fecaca 0%,
+                #fca5a5 100%
+            );
+            border-color: #f87171;
+            color: #7f1d1d;
+        }
+
+        .apply-btn {
+            margin-top: 16px;
+            width: 100%;
+        }
+
+        .apply-btn:disabled {
+            opacity: 0.7;
+        }
+
+        /* ================= SIDEBAR ================= */
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar .card {
+            padding: 24px;
+        }
+
+        .stat-item {
+            margin-bottom: 20px;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            background: linear-gradient(
+                135deg,
+                #667eea,
+                #764ba2
+            );
+            border-radius: 3px;
+        }
+
+        /* ================= EMPTY ================= */
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        /* ================= RESPONSIVE ================= */
+
+        @media(max-width: 1024px) {
+
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .navbar {
+                padding: 16px 24px;
+            }
+
+            .navbar h2 {
+                font-size: 24px;
+            }
+
+            .navbar-links {
+                gap: 16px;
+            }
+        }
+
+        @media(max-width: 640px) {
+
+            .container {
+                margin: 20px auto;
+                padding: 0 16px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .upload-box {
+                padding: 24px;
+            }
+
+            button {
+                padding: 11px 20px;
+                font-size: 14px;
+            }
+
+            h3 {
+                font-size: 19px;
+                margin-bottom: 16px;
+            }
+
+            .job h4 {
+                font-size: 16px;
+            }
+
+            .job-meta {
+                gap: 12px;
+            }
+
+            .processing-modal {
+                padding: 36px 24px;
+                margin: 20px;
+                max-width: calc(100% - 40px);
+            }
+        }
+    </style>
 </head>
+
+
 <body>
 
-<div class="navbar">
-    <h3>Candidate Dashboard</h3>
-    <div>
-        <a href="#">Profile</a>
-        <a href="/logout">Logout</a>
-    </div>
-</div>
+    <!-- =====================================================
+         PROCESSING OVERLAY
+    ====================================================== -->
 
-<div class="container">
+    <div
+        class="processing-overlay"
+        id="processingOverlay"
+    >
 
-<!-- Resume Upload -->
-<div class="card">
-    <h3>Upload Resume</h3>
-    <form id="resumeForm" enctype="multipart/form-data">
-        <input type="file" name="resume" required>
-        <br><br>
-        <button type="submit">Upload & Analyze</button>
-    </form>
-    <p id="uploadStatus"></p>
-</div>
+        <div class="processing-modal">
 
-<!-- Job Listings -->
-<div class="card">
-    <h3>Available Jobs</h3>
-    <div id="jobsList">Loading jobs...</div>
-</div>
+            <div class="spinner"></div>
 
-</div>
+            <h2>
+                Processing Resume
+            </h2>
 
-<script>
+            <p>
+                Analyzing your skills and finding matching jobs...
+            </p>
 
-// -------- Upload Resume --------
-document.getElementById("resumeForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
+            <div class="processing-steps">
 
-    let formData = new FormData(this);
-    let status = document.getElementById("uploadStatus");
+                <div
+                    class="step active"
+                    id="step-upload"
+                >
+                    <div class="step-icon">
+                        ⬆️
+                    </div>
 
-    try {
-        let res = await fetch("/upload-resume", {
-            method: "POST",
-            body: formData,
-            credentials: "include"
-        });
-
-        let data = await res.json();
-        console.log("UPLOAD RESPONSE:", data);
-
-        if (res.ok) {
-            status.innerText = "✅ Resume uploaded & processed";
-        } else {
-            status.innerText = "❌ " + (data.error || "Upload failed");
-        }
-
-    } catch (err) {
-        status.innerText = "❌ Upload failed";
-        console.error(err);
-    }
-});
-
-
-// -------- Load Jobs --------
-async function loadJobs() {
-    try {
-        let res = await fetch("/get-jobs", {
-            credentials: "include"
-        });
-
-        let jobs = await res.json();
-        console.log("JOBS:", jobs);
-
-        let container = document.getElementById("jobsList");
-        container.innerHTML = "";
-
-        jobs.forEach(job => {
-            let div = document.createElement("div");
-            div.classList.add("job");
-
-            div.innerHTML = `
-                <h4>${job.title}</h4>
-                <p>${job.description}</p>
-                <p><b>Skills:</b> ${job.required_skills || "Not specified"}</p>
-                <p><b>Experience:</b> ${job.experience_required || "N/A"}</p>
-                <p><b>Location:</b> ${job.location || "N/A"}</p>
-
-                <button onclick="applyJob('${job.job_id}', this)">Apply</button>
-
-                <p class="score" id="score-${job.job_id}"></p>
-                <div id="gap-${job.job_id}" class="gap-box"></div>
-            `;
-
-            container.appendChild(div);
-        });
-
-    } catch (err) {
-        console.error("Error loading jobs:", err);
-    }
-}
-
-
-// -------- Apply Job --------
-async function applyJob(jobId, btn) {
-    btn.innerText = "Applying...";
-    btn.disabled = true;
-
-    try {
-        let res = await fetch("/apply-job", {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ job_id: jobId })
-        });
-
-        let data = await res.json();
-        console.log("APPLY RESPONSE:", data);
-
-        if (res.ok) {
-
-            // -------- MATCH SCORE --------
-            let score = (data.match_score || 0).toFixed(2);
-            document.getElementById(`score-${jobId}`).innerText =
-                "Match Score: " + score + "%";
-
-            // -------- GAP + EXPLANATION --------
-            let gapDiv = document.getElementById(`gap-${jobId}`);
-
-            let matched = (data.matched_skills || []).join(", ");
-            let missing = (data.missing_skills || []).join(", ");
-            let gap = data.skill_gap_percentage || 0;
-
-            let color = gap < 30 ? "green" : gap < 60 ? "orange" : "red";
-
-            gapDiv.innerHTML = `
-                <p><b>🤖 AI Analysis:</b> ${data.explanation || "N/A"}</p>
-
-                <p><b>📊 Skill Gap:</b> 
-                    <span style="color:${color}; font-weight:bold;">
-                        ${gap}%
+                    <span>
+                        Uploading Resume
                     </span>
-                </p>
+                </div>
 
-                <p><b>✅ Matched Skills:</b> ${matched || "None"}</p>
-                <p><b>❌ Missing Skills:</b> ${missing || "None"}</p>
-            `;
 
-            btn.innerText = "Applied";
-            btn.classList.add("disabled");
+                <div
+                    class="step"
+                    id="step-analyze"
+                >
+                    <div class="step-icon">
+                        🤖
+                    </div>
 
-        } else {
-            btn.innerText = "Apply";
-            btn.disabled = false;
-            alert(data.error || "Failed to apply");
+                    <span>
+                        Analyzing Skills
+                    </span>
+                </div>
+
+
+                <div
+                    class="step"
+                    id="step-match"
+                >
+                    <div class="step-icon">
+                        🎯
+                    </div>
+
+                    <span>
+                        Finding Matches
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         NAVBAR
+    ====================================================== -->
+
+    <div class="navbar">
+
+        <h2>
+            🎯 Candidate Dashboard
+        </h2>
+
+        <div class="navbar-links">
+
+            <a href="#">
+                👤 Profile
+            </a>
+
+            <a href="/logout">
+                🚪 Logout
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         MAIN CONTAINER
+    ====================================================== -->
+
+    <div class="container">
+
+
+        <!-- =================================================
+             SIDEBAR
+        ================================================== -->
+
+        <div class="sidebar">
+
+            <div class="card">
+
+                <h3>
+                    📄 Upload Resume
+                </h3>
+
+
+                <form
+                    id="resumeForm"
+                    enctype="multipart/form-data"
+                >
+
+                    <div class="upload-box">
+
+                        <div class="upload-icon">
+                            📤
+                        </div>
+
+                        <p>
+                            Drag & Drop Resume
+                        </p>
+
+                        <small style="color: #a0aec0;">
+                            or click to select
+                        </small>
+
+                        <input
+                            type="file"
+                            name="resume"
+                            required
+                            accept=".pdf,.doc,.docx"
+                        >
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        id="uploadBtn"
+                    >
+                        Upload & Analyze
+                    </button>
+
+                </form>
+
+
+                <p id="uploadStatus"></p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             MAIN CONTENT
+        ================================================== -->
+
+        <div>
+
+            <div class="card">
+
+                <h3>
+                    💼 Recommended Jobs
+                </h3>
+
+                <div id="jobsList">
+                    <!-- Jobs loaded dynamically -->
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        // =====================================================
+        // PROCESSING STEPS
+        // =====================================================
+
+        function updateProcessingStep(stepNumber) {
+
+            const steps =
+                document.querySelectorAll('.step');
+
+
+            steps.forEach((step, index) => {
+
+                if (index < stepNumber) {
+
+                    step.classList.add('done');
+
+                    step.classList.remove('active');
+
+                }
+
+                else if (index === stepNumber) {
+
+                    step.classList.add('active');
+
+                    step.classList.remove('done');
+
+                }
+
+                else {
+
+                    step.classList.remove(
+                        'active',
+                        'done'
+                    );
+
+                }
+
+            });
+
         }
 
-    } catch (err) {
-        console.error("Apply error:", err);
-        btn.innerText = "Apply";
-        btn.disabled = false;
-    }
-}
-// Load jobs
-loadJobs();
 
-</script>
+        function showProcessing() {
+
+            document
+                .getElementById('processingOverlay')
+                .classList.add('show');
+
+            updateProcessingStep(0);
+
+        }
+
+
+        function hideProcessing() {
+
+            document
+                .getElementById('processingOverlay')
+                .classList.remove('show');
+
+        }
+
+
+        // =====================================================
+        // UPLOAD RESUME
+        // =====================================================
+
+        document
+            .getElementById("resumeForm")
+            .addEventListener(
+                "submit",
+                async function (e) {
+
+                    e.preventDefault();
+
+
+                    const formData =
+                        new FormData(this);
+
+
+                    const status =
+                        document.getElementById(
+                            "uploadStatus"
+                        );
+
+
+                    const uploadBtn =
+                        document.getElementById(
+                            "uploadBtn"
+                        );
+
+
+                    showProcessing();
+
+                    uploadBtn.disabled = true;
+
+
+                    try {
+
+                        // Uploading
+                        await new Promise(
+                            r => setTimeout(
+                                r,
+                                1000
+                            )
+                        );
+
+
+                        updateProcessingStep(1);
+
+
+                        // Analyze
+                        const res =
+                            await fetch(
+                                "/upload-resume",
+                                {
+                                    method: "POST",
+                                    body: formData,
+                                    credentials: "include"
+                                }
+                            );
+
+
+                        await new Promise(
+                            r => setTimeout(
+                                r,
+                                1000
+                            )
+                        );
+
+
+                        updateProcessingStep(2);
+
+
+                        const data =
+                            await res.json();
+
+
+                        console.log(
+                            "UPLOAD RESPONSE:",
+                            data
+                        );
+
+
+                        await new Promise(
+                            r => setTimeout(
+                                r,
+                                1000
+                            )
+                        );
+
+
+                        updateProcessingStep(3);
+
+
+                        await new Promise(
+                            r => setTimeout(
+                                r,
+                                500
+                            )
+                        );
+
+
+                        hideProcessing();
+
+
+                        if (res.ok) {
+
+                            status.innerText =
+                                "✅ Resume uploaded & processed";
+
+                            status.classList.add(
+                                "show",
+                                "success"
+                            );
+
+                            status.classList.remove(
+                                "error"
+                            );
+
+
+                            this.reset();
+
+
+                            await new Promise(
+                                r => setTimeout(
+                                    r,
+                                    500
+                                )
+                            );
+
+
+                            loadJobs();
+
+                        }
+
+                        else {
+
+                            status.innerText =
+                                "❌ " +
+                                (
+                                    data.error ||
+                                    "Upload failed"
+                                );
+
+                            status.classList.add(
+                                "show",
+                                "error"
+                            );
+
+                            status.classList.remove(
+                                "success"
+                            );
+
+                        }
+
+                    }
+
+                    catch (err) {
+
+                        hideProcessing();
+
+
+                        status.innerText =
+                            "❌ Upload failed";
+
+
+                        status.classList.add(
+                            "show",
+                            "error"
+                        );
+
+
+                        status.classList.remove(
+                            "success"
+                        );
+
+
+                        console.error(
+                            "Upload error:",
+                            err
+                        );
+
+                    }
+
+                    finally {
+
+                        uploadBtn.disabled =
+                            false;
+
+                    }
+
+                }
+            );
+
+
+        // =====================================================
+        // LOAD JOBS
+        // =====================================================
+
+        async function loadJobs() {
+
+            try {
+
+                const res =
+                    await fetch(
+                        "/get-jobs",
+                        {
+                            credentials:
+                                "include"
+                        }
+                    );
+
+
+                const jobs =
+                    await res.json();
+
+
+                console.log(
+                    "JOBS:",
+                    jobs
+                );
+
+
+                const container =
+                    document.getElementById(
+                        "jobsList"
+                    );
+
+
+                container.innerHTML = "";
+
+
+                if (!res.ok) {
+
+                    container.innerHTML = `
+
+                        <div class="empty-state">
+
+                            <div class="empty-state-icon">
+                                ⚠️
+                            </div>
+
+                            <p>
+                                ${jobs.error || "Error loading jobs"}
+                            </p>
+
+                        </div>
+
+                    `;
+
+                    return;
+
+                }
+
+
+                if (
+                    !Array.isArray(jobs) ||
+                    jobs.length === 0
+                ) {
+
+                    container.innerHTML = `
+
+                        <div class="empty-state">
+
+                            <div class="empty-state-icon">
+                                📋
+                            </div>
+
+                            <p>
+                                No jobs available right now.
+                            </p>
+
+                        </div>
+
+                    `;
+
+                    return;
+
+                }
+
+
+                jobs.forEach(job => {
+
+                    const div =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    div.classList.add(
+                        "job"
+                    );
+
+
+                    div.innerHTML = `
+
+                        <h4>
+                            ${job.title || "Untitled Job"}
+                        </h4>
+
+
+                        <div class="company">
+                            🏢
+                            ${job.company || "Company"}
+                        </div>
+
+
+                        <div class="job-meta">
+
+                            <div class="meta-item">
+                                📍
+                                ${job.location || "N/A"}
+                            </div>
+
+
+                            <div class="meta-item">
+                                ⏱️
+                                ${job.experience_required || "N/A"}
+                            </div>
+
+
+                            <div class="meta-item">
+                                🎓
+                                ${job.education_required || "N/A"}
+                            </div>
+
+                        </div>
+
+
+                        <p
+                            style="
+                                color:#4a5568;
+                                font-size:14px;
+                                margin:12px 0;
+                                line-height:1.5;
+                            "
+                        >
+                            ${job.description || "No description"}
+                        </p>
+
+
+                        <p
+                            style="
+                                color:#718096;
+                                font-size:13px;
+                                margin:12px 0;
+                            "
+                        >
+                            <b>
+                                Skills Required:
+                            </b>
+
+                            ${job.required_skills || "Not specified"}
+
+                        </p>
+
+
+                        <button
+                            class="apply-btn"
+                            onclick="applyJob(
+                                '${job.job_id}',
+                                this
+                            )"
+                        >
+                            Apply Now
+                        </button>
+
+
+                        <div
+                            class="score"
+                            id="score-${job.job_id}"
+                            style="display:none;"
+                        ></div>
+
+
+                        <div
+                            id="gap-${job.job_id}"
+                            class="gap-box"
+                            style="display:none;"
+                        ></div>
+
+                    `;
+
+
+                    container.appendChild(
+                        div
+                    );
+
+                });
+
+            }
+
+            catch (err) {
+
+                console.error(
+                    "Error loading jobs:",
+                    err
+                );
+
+
+                document.getElementById(
+                    "jobsList"
+                ).innerHTML = `
+
+                    <div class="empty-state">
+
+                        <div class="empty-state-icon">
+                            ⚠️
+                        </div>
+
+                        <p>
+                            Error loading jobs.
+                            Please refresh the page.
+                        </p>
+
+                    </div>
+
+                `;
+
+            }
+
+        }
+
+
+        // =====================================================
+        // APPLY JOB
+        // =====================================================
+
+        async function applyJob(
+            jobId,
+            btn
+        ) {
+
+            btn.innerText =
+                "Applying...";
+
+
+            btn.disabled =
+                true;
+
+
+            try {
+
+                const res =
+                    await fetch(
+                        "/apply-job",
+                        {
+                            method: "POST",
+
+                            credentials:
+                                "include",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                job_id: jobId
+                            })
+                        }
+                    );
+
+
+                const data =
+                    await res.json();
+
+
+                console.log(
+                    "APPLY RESPONSE:",
+                    data
+                );
+
+
+                // =================================================
+                // SUCCESS
+                // =================================================
+
+                if (res.ok) {
+
+
+                    // ---------------------------------------------
+                    // MATCH SCORE
+                    // ---------------------------------------------
+
+                    const score =
+                        Number(
+                            data.match_score || 0
+                        );
+
+
+                    const scoreDisplay =
+                        score.toFixed(2);
+
+
+                    const scoreEl =
+                        document.getElementById(
+                            `score-${jobId}`
+                        );
+
+
+                    scoreEl.innerText =
+                        "Match Score: " +
+                        scoreDisplay +
+                        "%";
+
+
+                    scoreEl.style.display =
+                        "inline-block";
+
+
+                    // Score color
+                    if (score >= 80) {
+
+                        scoreEl.classList.remove(
+                            "medium",
+                            "low"
+                        );
+
+                    }
+
+                    else if (score >= 50) {
+
+                        scoreEl.classList.add(
+                            "medium"
+                        );
+
+                        scoreEl.classList.remove(
+                            "low"
+                        );
+
+                    }
+
+                    else {
+
+                        scoreEl.classList.add(
+                            "low"
+                        );
+
+                        scoreEl.classList.remove(
+                            "medium"
+                        );
+
+                    }
+
+
+                    // ---------------------------------------------
+                    // SKILL GAP + EXPLANATION
+                    // ---------------------------------------------
+
+                    const gapDiv =
+                        document.getElementById(
+                            `gap-${jobId}`
+                        );
+
+
+                    const matched =
+                        (
+                            data.matched_skills ||
+                            []
+                        ).join(", ");
+
+
+                    const missing =
+                        (
+                            data.missing_skills ||
+                            []
+                        ).join(", ");
+
+
+                    const gap =
+                        Number(
+                            data.skill_gap_percentage ||
+                            0
+                        );
+
+
+                    gapDiv.innerHTML = `
+
+                        <p>
+                            <b>
+                                🤖 AI Analysis:
+                            </b>
+
+                            ${data.explanation || "N/A"}
+                        </p>
+
+
+                        <p>
+                            <b>
+                                📊 Skill Gap:
+                            </b>
+
+                            <span
+                                style="font-weight:bold;"
+                            >
+                                ${gap}%
+                            </span>
+                        </p>
+
+
+                        <p>
+                            <b>
+                                ✅ Matched Skills:
+                            </b>
+
+                            ${matched || "None"}
+                        </p>
+
+
+                        <p>
+                            <b>
+                                ❌ Missing Skills:
+                            </b>
+
+                            ${missing || "None"}
+                        </p>
+
+                    `;
+
+
+                    // Skill gap color
+                    if (gap < 30) {
+
+                        gapDiv.classList.remove(
+                            "medium",
+                            "low"
+                        );
+
+                    }
+
+                    else if (gap < 60) {
+
+                        gapDiv.classList.add(
+                            "medium"
+                        );
+
+                        gapDiv.classList.remove(
+                            "low"
+                        );
+
+                    }
+
+                    else {
+
+                        gapDiv.classList.add(
+                            "low"
+                        );
+
+                        gapDiv.classList.remove(
+                            "medium"
+                        );
+
+                    }
+
+
+                    gapDiv.style.display =
+                        "block";
+
+
+                    // ---------------------------------------------
+                    // BUTTON
+                    // ---------------------------------------------
+
+                    btn.innerText =
+                        "Applied ✓";
+
+
+                    btn.classList.add(
+                        "disabled"
+                    );
+
+
+                    btn.disabled =
+                        true;
+
+                }
+
+
+                // =================================================
+                // ERROR
+                // =================================================
+
+                else {
+
+                    btn.innerText =
+                        "Apply Now";
+
+
+                    btn.disabled =
+                        false;
+
+
+                    alert(
+                        data.error ||
+                        "Failed to apply"
+                    );
+
+                }
+
+            }
+
+            catch (err) {
+
+                console.error(
+                    "Apply error:",
+                    err
+                );
+
+
+                btn.innerText =
+                    "Apply Now";
+
+
+                btn.disabled =
+                    false;
+
+            }
+
+        }
+
+
+        // =====================================================
+        // INITIAL LOAD
+        // =====================================================
+
+        loadJobs();
+
+    </script>
 
 </body>
+
 </html>
