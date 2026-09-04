@@ -21,52 +21,34 @@ def extract_skills(text):
 
     text = str(text).lower()
 
-    # Remove unnecessary phrases
-    text = re.sub(
-        r"strong knowledge of",
-        "",
-        text
-    )
+    skill_patterns = {
+        "java": r"\bjava\b",
+        "python": r"\bpython\b",
+        "sql": r"\bsql\b",
+        "pandas": r"\bpandas\b",
+        "numpy": r"\bnumpy\b",
+        "excel": r"\bexcel\b",
+        "power bi": r"\bpower\s*bi\b",
+        "data visualization": r"\bdata visualization\b",
+        "analytical thinking": r"\banalytical thinking\b",
+        "data structures algorithms":
+            r"\bdata structures\s*(?:&|and)?\s*algorithms\b",
+        "rest apis":
+            r"\brest(?:ful)?\s*apis?\b",
+        "git": r"\bgit\b",
+        "github": r"\bgithub\b",
+        "mysql": r"\bmysql\b",
+        "node.js": r"\bnode\.?js\b"
+    }
 
-    # Replace brackets with commas
-    text = re.sub(
-        r"[()]",
-        ",",
-        text
-    )
+    found_skills = []
 
-    # Replace common separators
-    text = re.sub(
-        r"/|\\|;",
-        ",",
-        text
-    )
+    for skill, pattern in skill_patterns.items():
 
-    # Handle common skills that may appear without separators
-    text = re.sub(
-        r"\b(sql|python|pandas|numpy|excel|power bi|data visualization|analytical thinking)\b",
-        r",\1,",
-        text
-    )
+        if re.search(pattern, text, re.IGNORECASE):
+            found_skills.append(skill)
 
-    # Split by comma
-    raw_skills = text.split(",")
-
-    skills = []
-
-    for skill in raw_skills:
-
-        skill = re.sub(
-            r"[^a-zA-Z0-9\s+#.]",
-            "",
-            skill
-        ).strip()
-
-        if skill:
-            skills.append(skill)
-
-    # Remove duplicates
-    return list(set(skills))
+    return found_skills
 
 
 # ============================================================
@@ -336,11 +318,12 @@ def apply_job():
 
         cur.execute("""
             SELECT
-                skills,
-                experience,
-                education,
-                summary
-            FROM resumes
+    skills,
+    experience,
+    education,
+    summary,
+    resume_text
+FROM resumes
             WHERE user_id = %s
         """, (user_id,))
 
@@ -365,6 +348,7 @@ def apply_job():
         resume_education = resume[2] or ""
 
         resume_summary = resume[3] or ""
+        resume_text_raw = resume[4] or ""
 
 
         # Convert skills to list
@@ -377,19 +361,7 @@ def apply_job():
         # RESUME TEXT FOR SBERT
         # ----------------------------------------------------
 
-        resume_text = f"""
-        Skills:
-        {resume_skills_raw}
-
-        Experience:
-        {resume_experience}
-
-        Education:
-        {resume_education}
-
-        Summary:
-        {resume_summary}
-        """
+        resume_text = resume_text_raw
 
 
         # ====================================================
@@ -537,22 +509,21 @@ def apply_job():
         # 5. GENERATE EXPLANATION
         # ====================================================
 
+        # ============================================================
+# 5. GENERATE EXPLANATION
+# ============================================================
+
         explanation = generate_explanation(
-
-            matched_skills,
-
-            missing_skills,
-
-            match_score,
-
-            semantic_score,
-
-            skill_score,
-
-            experience_score,
-
-            education_score
-        )
+    job_skills,
+    matched_skills,
+    missing_skills,
+    skill_gap_percentage,
+    match_score,
+    semantic_score,
+    skill_score,
+    experience_score,
+    education_score
+)
 
 
         # ----------------------------------------------------

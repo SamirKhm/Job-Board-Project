@@ -20,13 +20,69 @@ def allowed_file(filename):
 
 # 🔥 Clean skills (VERY IMPORTANT)
 def clean_skills(skills):
+
     cleaned = []
+
     for s in skills:
-        s = re.sub(r"[^a-zA-Z0-9\s]", "", str(s).lower().strip())
+
+        s = str(s).lower().strip()
+
+        # Replace special characters with spaces
+        s = re.sub(r"[^a-z0-9\s]", " ", s)
+
+        # Remove duplicate spaces
+        s = re.sub(r"\s+", " ", s).strip()
+
         if s:
             cleaned.append(s)
+
     return list(set(cleaned))
 
+def extract_resume_skills(text):
+    """
+    Extract explicitly mentioned skills from the original resume text.
+    This avoids losing skills due to incomplete LLM extraction.
+    """
+
+    if not text:
+        return []
+
+    text = str(text).lower()
+
+    # Canonical skill names
+    skill_patterns = {
+        "java": r"\bjava\b",
+        "python": r"\bpython\b",
+        "javascript": r"\bjavascript\b",
+        "sql": r"\bsql\b",
+        "pandas": r"\bpandas\b",
+        "numpy": r"\bnumpy\b",
+        "excel": r"\b(?:excel|microsoft excel)\b",
+        "power bi": r"\bpower\s*bi\b",
+        "data visualization": r"\bdata visualization\b",
+        "analytical thinking": r"\banalytical thinking\b",
+        "data structures algorithms": r"\bdata structures\s*(?:&|and)?\s*algorithms\b",
+        "rest apis": r"\brest(?:ful)?\s*apis?\b",
+        "git": r"\bgit\b",
+        "github": r"\bgithub\b",
+        "mysql": r"\bmysql\b",
+        "node.js": r"\bnode\.?js\b",
+        "html": r"\bhtml\b",
+        "css": r"\bcss\b",
+        "machine learning": r"\bmachine learning\b",
+        "nlp": r"\bnlp\b",
+        "semantic similarity": r"\bsemantic similarity\b",
+        "oop": r"\boop\b"
+    }
+
+    found_skills = []
+
+    for skill, pattern in skill_patterns.items():
+
+        if re.search(pattern, text, re.IGNORECASE):
+            found_skills.append(skill)
+
+    return found_skills
 
 @resume_bp.route("/upload-resume", methods=["POST"])
 def upload_resume():
@@ -60,7 +116,7 @@ def upload_resume():
         print("✅ File saved", flush=True)
 
         # ✅ Extract text
-        extracted_text = extract_text(filepath)[:2000]
+        extracted_text = extract_text(filepath)
 
         print("🚀 Sending to LLM...", flush=True)
 
@@ -70,12 +126,17 @@ def upload_resume():
 
         # ------------------ SAFE DATA HANDLING ------------------
 
-        raw_skills = structured_data.get("skills", [])
-        if not isinstance(raw_skills, list):
-            raw_skills = []
+        # ------------------------------------------------------------
+# SKILLS FROM ORIGINAL RESUME TEXT
+# ------------------------------------------------------------
 
-        # 🔥 Clean skills
-        skills_list = clean_skills(raw_skills)
+        skills_list = extract_resume_skills(extracted_text)
+
+        print(
+            "✅ RESUME SKILLS FROM TEXT:",
+            skills_list,
+            flush=True
+        )
 
         skills = ", ".join(skills_list)
         experience = str(structured_data.get("experience", ""))
@@ -87,14 +148,23 @@ def upload_resume():
         cur = mysql.connection.cursor()
 
         cur.execute("""
-            INSERT INTO resumes (user_id, skills, experience, education, summary)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO resumes
+(user_id, skills, experience, education, summary, resume_text)
+VALUES (%s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
-                skills = VALUES(skills),
-                experience = VALUES(experience),
-                education = VALUES(education),
-                summary = VALUES(summary)
-        """, (user_id, skills, experience, education, summary))
+    skills = VALUES(skills),
+    experience = VALUES(experience),
+    education = VALUES(education),
+    summary = VALUES(summary),
+    resume_text = VALUES(resume_text)
+        """, (
+    user_id,
+    skills,
+    experience,
+    education,
+    summary,
+    extracted_text
+))
 
         mysql.connection.commit()
         cur.close()

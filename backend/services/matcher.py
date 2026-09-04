@@ -1,6 +1,7 @@
 import os
 from sentence_transformers import SentenceTransformer, util
 import re
+import json
 # ------------------ LOAD MODEL ------------------
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,13 +31,45 @@ def normalize_skills(skills):
     if not skills:
         return set()
 
-    return {
-        str(skill).strip().lower()
-        for skill in skills
-        if str(skill).strip()
-    }
+    # --------------------------------------------------------
+    # If skills come from MySQL as a string
+    # Example:
+    # "python, pandas, numpy, sql, excel"
+    # --------------------------------------------------------
+    if isinstance(skills, str):
 
+        skills = skills.strip()
 
+        # Try JSON format first
+        try:
+            parsed = json.loads(skills)
+
+            if isinstance(parsed, list):
+                skills = parsed
+
+        except Exception:
+            # MySQL comma-separated format
+            skills = skills.split(",")
+
+    # --------------------------------------------------------
+    # Normalize skills
+    # --------------------------------------------------------
+    normalized = set()
+
+    for skill in skills:
+
+        skill = str(skill).lower().strip()
+
+        # Replace special characters with spaces
+        skill = re.sub(r"[^a-z0-9\s]", " ", skill)
+
+        # Remove multiple spaces
+        skill = re.sub(r"\s+", " ", skill).strip()
+
+        if skill:
+            normalized.add(skill)
+
+    return normalized
 # ============================================================
 # EXTRACT YEARS OF EXPERIENCE
 # ============================================================
@@ -66,85 +99,49 @@ def extract_years(text):
 # SKILL GAP ANALYSIS
 # ============================================================
 
-def skill_gap_analysis(
-    resume_skills,
-    job_skills
-):
+def skill_gap_analysis(resume_skills, job_skills):
 
-    resume_set = normalize_skills(
-        resume_skills
-    )
+    print("\n========== SKILL DEBUG ==========")
+    print("RAW RESUME SKILLS:", resume_skills)
+    print("RAW JOB SKILLS:", job_skills)
 
-    job_set = normalize_skills(
-        job_skills
-    )
+    resume_set = normalize_skills(resume_skills)
+    job_set = normalize_skills(job_skills)
 
+    print("NORMALIZED RESUME:", resume_set)
+    print("NORMALIZED JOB:", job_set)
 
-    # Matching skills
     matched = sorted(
-        resume_set.intersection(
-            job_set
-        )
+        resume_set.intersection(job_set)
     )
 
-
-    # Missing skills
     missing = sorted(
         job_set - resume_set
     )
 
-
-    # --------------------------------------------------------
-    # SKILL SCORE
-    #
-    # Skill Score =
-    # Matched Required Skills /
-    # Total Required Skills
-    # --------------------------------------------------------
+    print("MATCHED:", matched)
+    print("MISSING:", missing)
+    print("=================================\n")
 
     if job_set:
 
-        skill_score = (
-            len(matched)
-            /
-            len(job_set)
-        )
+        skill_score = len(matched) / len(job_set)
 
         gap_percentage = (
-            len(missing)
-            /
-            len(job_set)
+            len(missing) / len(job_set)
         ) * 100
 
     else:
 
         skill_score = 0.0
-
         gap_percentage = 0.0
 
-
     return {
-
-        "matched_skills":
-            matched,
-
-        "missing_skills":
-            missing,
-
-        "skill_score":
-            round(
-                skill_score,
-                4
-            ),
-
-        "skill_gap_percentage":
-            round(
-                gap_percentage,
-                2
-            )
+        "matched_skills": matched,
+        "missing_skills": missing,
+        "skill_score": round(skill_score, 4),
+        "skill_gap_percentage": round(gap_percentage, 2)
     }
-
-
 # ============================================================
 # EXPERIENCE SCORE
 # ============================================================
@@ -158,24 +155,70 @@ def calculate_experience_score(
         resume_experience
     )
 
+    job_text = str(
+        job_experience or ""
+    ).lower()
+
+    # --------------------------------------------------------
+    # Detect experience range
+    # Examples:
+    # 0-2 years
+    # 1-3 years
+    # 2 to 4 years
+    # --------------------------------------------------------
+
+    range_match = re.search(
+        r'(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)\s*(?:years?|yrs?)',
+        job_text
+    )
+
+    if range_match:
+
+        minimum_years = float(
+            range_match.group(1)
+        )
+
+        maximum_years = float(
+            range_match.group(2)
+        )
+
+        # Candidate is within acceptable range
+        if (
+            resume_years >= minimum_years
+            and resume_years <= maximum_years
+        ):
+            return 1.0
+
+        # Candidate has less than minimum
+        if resume_years < minimum_years:
+
+            if minimum_years == 0:
+                return 1.0
+
+            return round(
+                resume_years / minimum_years,
+                4
+            )
+
+        # Candidate exceeds maximum
+        return 1.0
+
+    # --------------------------------------------------------
+    # Single minimum requirement
+    # Example:
+    # "2 years experience"
+    # --------------------------------------------------------
+
     required_years = extract_years(
         job_experience
     )
 
-
-    # No experience requirement
     if required_years <= 0:
-
         return 1.0
 
-
-    # Candidate satisfies requirement
     if resume_years >= required_years:
-
         return 1.0
 
-
-    # Candidate has partial experience
     return round(
         resume_years / required_years,
         4
@@ -191,90 +234,187 @@ def calculate_education_score(
     job_education
 ):
 
-    # If employer did not specify education,
-    # education requirement is considered satisfied.
-    if not job_education:
-
-        return 1.0
-
-
-    if not resume_education:
-
-        return 0.0
-
-
     resume_text = str(
-        resume_education
-    ).lower()
+        resume_education or ""
+    ).lower().strip()
 
     job_text = str(
-        job_education
-    ).lower()
+        job_education or ""
+    ).lower().strip()
 
+    print("\n========== EDUCATION DEBUG ==========")
+    print("RAW RESUME EDUCATION:", resume_education)
+    print("RAW JOB EDUCATION:", job_education)
+    print("NORMALIZED RESUME:", resume_text)
+    print("NORMALIZED JOB:", job_text)
 
-    # Common qualification terms
-    education_terms = [
+    # --------------------------------------------------------
+    # No education requirement
+    # --------------------------------------------------------
 
-        "b.tech",
-        "btech",
+    if not job_text:
+        print("Education requirement not specified -> 100%")
+        return 1.0
 
-        "b.e",
-        "be",
+    # --------------------------------------------------------
+    # Education qualification groups
+    # --------------------------------------------------------
 
-        "bachelor",
+    education_patterns = {
 
-        "m.tech",
-        "mtech",
+        "b.tech": [
+            "b.tech",
+            "btech",
+            "bachelor of technology"
+        ],
 
-        "m.e",
-        "me",
+        "b.e": [
+            "b.e",
+            "be ",
+            "bachelor of engineering"
+        ],
 
-        "master",
+        "b.sc": [
+            "b.sc",
+            "bsc",
+            "bachelor of science"
+        ],
 
-        "mba",
+        "bca": [
+            "bca",
+            "bachelor of computer applications"
+        ],
 
-        "b.sc",
-        "bsc",
+        "m.tech": [
+            "m.tech",
+            "mtech",
+            "master of technology"
+        ],
 
-        "m.sc",
-        "msc",
+        "m.e": [
+            "m.e",
+            "master of engineering"
+        ],
 
-        "phd",
+        "m.sc": [
+            "m.sc",
+            "msc",
+            "master of science"
+        ],
 
-        "diploma"
-    ]
+        "mca": [
+            "mca",
+            "master of computer applications"
+        ],
 
+        "mba": [
+            "mba",
+            "master of business administration"
+        ],
 
-    resume_terms = {
-
-        term
-
-        for term in education_terms
-
-        if term in resume_text
+        "phd": [
+            "phd",
+            "doctorate"
+        ]
     }
 
+    # --------------------------------------------------------
+    # Detect qualification in resume
+    # --------------------------------------------------------
 
-    job_terms = {
+    resume_qualifications = set()
 
-        term
+    for qualification, patterns in education_patterns.items():
 
-        for term in education_terms
+        for pattern in patterns:
 
-        if term in job_text
-    }
+            if pattern in resume_text:
+                resume_qualifications.add(
+                    qualification
+                )
+                break
 
+    # --------------------------------------------------------
+    # Detect qualification required by job
+    # --------------------------------------------------------
 
-    # If both contain a common qualification
-    if resume_terms.intersection(
-        job_terms
+    job_qualifications = set()
+
+    for qualification, patterns in education_patterns.items():
+
+        for pattern in patterns:
+
+            if pattern in job_text:
+                job_qualifications.add(
+                    qualification
+                )
+                break
+
+    print(
+        "RESUME QUALIFICATIONS:",
+        resume_qualifications
+    )
+
+    print(
+        "JOB QUALIFICATIONS:",
+        job_qualifications
+    )
+
+    # --------------------------------------------------------
+    # Direct qualification match
+    # --------------------------------------------------------
+
+    if (
+        resume_qualifications
+        and job_qualifications
+        and resume_qualifications.intersection(
+            job_qualifications
+        )
     ):
+
+        print(
+            "✅ Education qualification matched -> 100%"
+        )
+
+        print(
+            "====================================\n"
+        )
 
         return 1.0
 
+    # --------------------------------------------------------
+    # If job requires B.Tech and resume has
+    # Bachelor of Technology
+    # --------------------------------------------------------
+
+    if (
+        "b.tech" in job_qualifications
+        and "b.tech" in resume_qualifications
+    ):
+
+        print(
+            "✅ B.Tech requirement satisfied -> 100%"
+        )
+
+        print(
+            "====================================\n"
+        )
+
+        return 1.0
+
+    # --------------------------------------------------------
+    # No match
+    # --------------------------------------------------------
+
+    print(
+        "❌ Education qualification mismatch -> 0%"
+    )
+
+    print(
+        "====================================\n"
+    )
 
     return 0.0
-
 
 # ============================================================
 # SEMANTIC SCORE
